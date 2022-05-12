@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:java="http://www.mulesoft.org/schema/mule/java" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="25d94ffa-f62a-4e8e-beec-608fc9c470b6" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<http:listener-config name="HTTP_Listener_Newconfig" doc:name="HTTP Listener config" doc:id="32095372-2a2b-4531-bb6a-9e8ab326988d" >
+		<http:listener-connection host="0.0.0.0" port="8082" />
+	</http:listener-config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="463ce8d1-d263-4ec7-9e20-b972723b84d1" >
+		<http:request-connection host="localhost" port="8082" />
+	</http:request-config>
+	<flow name="variabledemoFlow1" doc:id="d454898a-1d13-4c1f-9b3c-ec9e0522fb1e" >
+		<http:listener doc:name="Listener" doc:id="16be9fd6-b5c6-497c-922a-cc827a618a11" path="/staticdemo" config-ref="HTTP_Listener_config"/>
+		<java:invoke-static method="sayHello(java.lang.String,java.lang.String)" doc:name="Invoke static" doc:id="7d18ec54-67e1-4c66-bc4b-6737e88cdd9a" class="com.mule.FruitPriceService">
+			<java:args ><![CDATA[#[{
+name:attributes.queryParams.name,
+city: attributes.queryParams.city
+}]]]></java:args>
+		</java:invoke-static>
+	</flow>
+	<flow name="NonStatic" doc:id="f2933fd4-afe2-436c-999f-120a94231422" >
+		<http:listener doc:name="/nonstatic" doc:id="744fc6dc-f326-45cd-a769-12121ef88964" config-ref="HTTP_Listener_config" path="/nonstatic"/>
+		<java:new doc:name="New" doc:id="2ec9e0b3-8900-438f-b741-85ea09655f9b" class="com.mule.FruitPriceService" constructor="FruitPriceService()" target="javaObject"/>
+		<java:invoke doc:name="Invoke" doc:id="a665a4b4-41b7-4305-9ba1-bcd30dc74885" instance="#[vars.javaObject]" class="com.mule.FruitPriceService" method="getFruitPrice(java.lang.String)">
+			<java:args ><![CDATA[#[%dw 2.0
+output application/java
+---
+{
+	fruitName: payload.FruitName as String
+}]]]></java:args>
+		</java:invoke>
+	</flow>
+	<flow name="variabledemoFlow" doc:id="70b4c73f-0327-4083-bbe5-6bce5e12af9d">
+		<http:listener doc:name="/test" doc:id="5ba67396-e469-42fb-8116-d87db6935848" path="/test" config-ref="HTTP_Listener_config" />
+		<set-variable value="#[payload]" doc:name="Set Variable" doc:id="084e05d2-ab06-4a45-ab5a-16cfe68f02e7" variableName="RequestPayload" />
+		<set-payload doc:name="Set Payload" doc:id="5fafa323-2845-40d2-a132-95decf474c03" value='#[output application/json&#10;---&#10;{&#10;	"Brand":"Titan"&#10;}]' />
+		<ee:transform doc:name="Transform Message" doc:id="1ae617e4-0dd6-4eee-aa38-d15d3f0209ad">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	Brand: payload.Brand,
+	FinalPrice: vars.RequestPayload.Quantity*vars.RequestPayload.Price,
+	IndividualPrice: vars.RequestPayload.Price
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="variabledemoFlow2" doc:id="a210366f-41ef-4da2-ae7e-193e59fcacbd" >
+		<http:listener doc:name="/start" doc:id="5894c022-619a-42c2-98c8-d24168350f2f" config-ref="HTTP_Listener_config" path="/start"/>
+		<set-variable value="#[attributes.headers.X]" doc:name="X" doc:id="8a9c4601-7f5c-48d9-a71b-6f01529514f1" variableName="X"/>
+		<set-variable value="#[attributes.headers.Y]" doc:name="Y" doc:id="357f23e0-ea4b-4350-8f9b-b43d50f80dea" variableName="Y"/>
+		<http:request method="POST" doc:name="Request" doc:id="3564e26f-455c-43c8-88de-532562cd2c04" config-ref="HTTP_Request_configuration" path="ending">
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	X: attributes.headers.X,
+	Y: attributes.headers.Y
+}]]]></http:headers>
+		</http:request>
+	</flow>
+	<flow name="variabledemoFlow4" doc:id="1facb896-2a9b-4768-8636-fd7d63fc7d75" >
+		<http:listener doc:name="/private" doc:id="475d5eac-d1ec-4b10-8495-1522db9744fc" config-ref="HTTP_Listener_config" path="/private"/>
+		<set-variable value="#[attributes.headers.X]" doc:name="X" doc:id="448b4926-b10e-4286-a63c-96ff38f70dd1" variableName="X"/>
+		<set-variable value="#[attributes.headers.Y]" doc:name="Y" doc:id="1ffa1ec0-73d9-4195-a491-068af866c60a" variableName="Y"/>
+		<flow-ref doc:name="Flow Reference" doc:id="ef71cb2b-7160-4306-917d-96c2abe52cb5" name="PrivateFLow" />
+	</flow>
+	<flow name="PrivateFLow" doc:id="53a2a01b-8c1f-4dc5-86bd-84c76b74f8e7" >
+		<ee:transform doc:name="Transform Message" doc:id="d8c85db1-c2b2-49f0-8888-3ecd31db7a70" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	X:vars.X,
+	Y:vars.Y
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="variabledemoFlow3" doc:id="31a5b040-60d8-4724-856f-7403ac4f986a" >
+		<http:listener doc:name="/ending" doc:id="36037b39-5ded-4d45-b22f-a99a3c5380ae" config-ref="HTTP_Listener_Newconfig" path="/ending"/>
+		<ee:transform doc:name="Transform Message" doc:id="16942dc0-81c1-4300-9bf4-a10e8dcbd559" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Message":"This is from another flow",
+	X:attributes.headers.X,
+	Y:attributes.headers.Y,
+	ThePayload: payload,
+	total: attributes.headers.X as Number + attributes.headers.Y as Number
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="variabledemoFlow5" doc:id="94402da3-1d96-4dbf-9da9-e1b1a875b2a0" >
+		<http:listener doc:name="/postoffice" doc:id="a70ded50-c685-4420-bd3a-04cdd28ae37a" config-ref="HTTP_Listener_config" path="/postoffice"/>
+		<http:request method="GET" doc:name="Request" doc:id="b72aa6ec-ea7a-41a4-8ea6-3455e9dcb916" url="https://api.postalpincode.in/pincode" config-ref="HTTP_Request_configuration">
+			<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	PINCODE : attributes.queryParams.code
+}]]]></http:uri-params>
+			<http:query-params ><![CDATA[#[output application/java
+---
+{
+	
+}]]]></http:query-params>
+		</http:request>
+	</flow>
+	<flow name="variabledemoFlow6" doc:id="f5b5808d-5a32-49cb-bece-eb47132afed2" >
+		<http:listener doc:name="onlystatic" doc:id="c6590a4b-3a0a-4c6b-9019-7481862efe79" config-ref="HTTP_Listener_config" path="/onlystatic/{Name}/{Location}"/>
+		<ee:transform doc:name="Transform Message" doc:id="a674a765-3409-4b02-9663-853676fc7a7d" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	Message:java!com::mule::FruitPriceService::sayHello(attributes.uriParams.Name,attributes.uriParams.Location)
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="variabledemoFlow7" doc:id="6dca7d8b-316b-4390-bd36-0ce210ae3ac9" >
+		<http:listener doc:name="nonstatic" doc:id="909e5ae5-d642-40cd-bcf4-68d6457bd1b8" config-ref="HTTP_Listener_config" path="/nonstatic"/>
+		<set-variable value="#[payload.fruitName]" doc:name="fruit" doc:id="6c8eff67-2d9a-4da6-8a5e-0ebb0743283c" variableName="fruit"/>
+		<java:new doc:name="New" doc:id="11969322-898a-4921-a56b-a73d63ad760f" class="com.mule.FruitPriceService" constructor="FruitPriceService()"/>
+		<ee:transform doc:name="Transform Message" doc:id="4273c207-eb4e-4dd7-ab51-5fc06b7cd292" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	price: Java::invoke('com.mule.FruitPriceService','getFruitPrice(String)',payload,{fruitName:vars.fruit as String})
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
